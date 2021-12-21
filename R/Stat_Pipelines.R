@@ -1,0 +1,949 @@
+library(stringr)
+
+if(!str_detect(sessionInfo()[[1]]$os,"linux")){
+setwd("D:\\study\\school\\20160615 paper")
+source_dir<-"http://viva1109.iptime.org"
+}else{
+source_dir<-"/data/sharedcode/kjkim"
+}
+source(paste0(source_dir,"/RFunctions/FunctionsTMAT/funcs_TMAT.R"))
+source(paste0(source_dir,"/RFunctions/FunctionsTMAT/ANCOM.R"))
+get_plots<-function(lala){
+  # browser()
+  # folder<-wd
+  print(args)
+  ncol<-as.numeric(ncol)
+
+  library(stringr)
+  dir.create(paste0(folder,"/output"))
+  setwd(folder)
+  library(VennDiagram)
+  library(edgeR)
+  cex_val<-1.5
+  cex_val2<-1.7
+  nm_y<-str_split(nm_y_bf,"_")[[1]]
+  db<-str_split(db_bf,"_")[[1]]
+  methods_bf2<-str_split(methods_bf,"_")[[1]]
+  if(length(methods_bf2)==4){
+    # methods<-methods_bf2
+    methods<-c("TMAT",methods_bf2[!str_detect(methods_bf2,"TMAT")])
+  }else if(length(methods_bf2)==3){
+    # methods<-methods_bf2
+    methods<-c("TMAT","TMATpermu",methods_bf2[!str_detect(methods_bf2,"TMAT")])
+  }else{
+    print("Number of methods is not ameanable.")
+    methods<-methods_bf2
+    methods[str_detect(methods_bf2,"TMAT")]<-"TMATpermu"
+  }
+  
+  lapply(db,function(db_tmp){
+    # browser()
+    # for ( i in 1:length(ll1)){
+    ll2<-list.files(folder)
+    
+    ll3<-ll2[str_detect(ll2,".csv")]
+    nm<-str_extract(ll3,"(?<=Pval_).+(?=_)")
+    
+    # ch_list<-str_detect(ll3,db_tmp)
+    # ch_go_bf<-ll3[ch_list]
+    # ch_go_bf2<-sapply(methods,function(mts){
+    #   str_detect(ch_go_bf,mts)
+    # })
+    # ch_go<-ch_go_bf[as.logical(apply(ch_go_bf2,1,sum))]
+    
+    ch_list<-str_detect(ll3,db_tmp) & str_detect(ll3,"Pval")
+    ch_go<-ll3[ch_list]
+    print("DBDB")
+    print(db_tmp)
+    contents<-lapply(paste0(folder,"/",ch_go),read.csv,stringsAsFactors=F)
+    #print("contents!!!")
+    #print(contents)
+    contents2<-lapply(contents,function(data){
+	dd2<-t(data[,1:2])
+	colnames(dd2)<-data$Genus
+	dd3<-data.frame(dd2)
+	rownames(data)<-names(dd3)
+	return(data)
+    })
+    contents2_nm<-rownames(contents2[[1]])
+    contents3<-lapply(contents2,function(data){
+	data[contents2_nm,]
+    })
+    out<-do.call("cbind",contents3)
+    out2<-out[,c(1,which(str_detect(names(out),"FDR")))]
+    names(out2)[-1]<-paste0("FDR_",nm[ch_list])
+    write.csv(out2,paste0("output","/",db_tmp,"_pvalues.csv"))
+    print("warnings")
+    print(warnings())
+    names(out2)[-1]<-paste0(nm[ch_list])
+    system(paste0("scp output","/",db_tmp,"_pvalues.csv ng:~"))
+	#print(paste0("scp -r ",folder," ng:~"))
+    system(paste0("scp -r ",folder," ng:~"))
+  })
+}
+
+
+get_pval<-function(lala){
+  library(permute)
+  library(OMiAT)
+  library(plyr)
+  library(ecodist)
+  library(ape)
+  library(stringr)
+  library(ancom.R)
+  library(edgeR)
+  library(plyr)
+  library(MiSPU)
+  methods<-str_split(methods_bf,"_")[[1]]
+  if(class(conti)=="try-error"){
+    conti<-TRUE
+    print("The Phenotype is continuous or ordinal variable.")
+  }
+  if(conti){
+    print("The Phenotype is continuous or ordinal variable.")
+  }else{
+    print("The Phenotype is group variable. If The number of group levels is more than 2, OMiAT will be depreciated.")
+  }
+  # 
+  # ##############
+  # wd<-"D:/study/school/20160615 paper/Analysis/20171215NewSimul/realAnalysis/paperReal/PRJEB13092/"
+  # setwd(wd)
+  # db<-"ez"
+  # methods<-c("wilcoxon","OMiAT","TMAT15","ANCOM")
+  # ncol<-3
+  # nperm<-100
+  # ncore<-1
+  # ##############
+  
+  
+  ##################server
+  # wd<-"./Analysis/20171215NewSimul/realAnalysis/paperReal/PRJEB13092/"
+  # setwd(wd)
+  # db<-"ez"
+  # methods<-c("wilcoxon","OMiAT","TMAT15")
+  # ncol<-3
+  # nperm<-100
+  # ncore<-60
+  ##################
+  
+  
+  
+  source("/data/sharedcode/kjkim/RFunctions/Tree_based_methods.R")
+  source(paste0("/data/sharedcode/kjkim/RFunctions/FunctionsTMAT/Integrals.R"),encoding = "UTF-8")
+  source(paste0("/data/sharedcode/kjkim/RFunctions/FunctionsTMAT/data_prep.R"),encoding = "UTF-8")
+  source(paste0("/data/sharedcode/kjkim/RFunctions/FunctionsTMAT/functions_tree_down.R"),encoding = "UTF-8")
+  source(paste0("/data/sharedcode/kjkim/RFunctions/FunctionsTMAT/stats_and_funcs.R"),encoding = "UTF-8")
+  source(paste0("/data/sharedcode/kjkim/RFunctions/FunctionsTMAT/Funcs_MiRKAT.R"),encoding = "UTF-8")
+  source(paste0("/data/sharedcode/kjkim/RFunctions/FunctionsTMAT/simulation_funcs.R"),encoding = "UTF-8")
+  source(paste0("/data/sharedcode/kjkim/RFunctions/FunctionsTMAT/NMDS.R"),encoding = "UTF-8")
+  # source_home<-"http://viva1109.iptime.org/"
+  # source(paste0(source_home,"RFunctions/Tree_based_methods.R"))
+  # source(paste0(source_home,"RFunctions/FunctionsTMAT/Integrals.R"),encoding = "UTF-8")
+  # source(paste0(source_home,"RFunctions/FunctionsTMAT/data_prep.R"),encoding = "UTF-8")
+  # source(paste0(source_home,"RFunctions/FunctionsTMAT/functions_tree_down.R"),encoding = "UTF-8")
+  # source(paste0(source_home,"RFunctions/FunctionsTMAT/stats_and_funcs.R"),encoding = "UTF-8")
+  # source(paste0(source_home,"RFunctions/FunctionsTMAT/Funcs_MiRKAT.R"),encoding = "UTF-8")
+  # source(paste0(source_home,"RFunctions/FunctionsTMAT/simulation_funcs.R"),encoding = "UTF-8")
+  
+  
+  
+  data_list_final<-readRDS(paste0("Set_Base_",db,".rds"))
+  print("Alpha diversity start")
+  library(GUniFrac)
+
+  # print("lala")
+  # print(dim(data_list_final$dataset))
+  # print(data_list_final$dataset[1:4,1:4])
+  # print(apply(data_list_final$dataset,1,sum))
+  # print(apply(data_list_final$dataset,2,sum))
+  
+  rffTable1<-Rarefy(ceiling(data_list_final$dataset))$otu.tab.rff
+  # # apply(rffTable1,1,sum)
+  H <- diversity(rffTable1,"shannon")
+  simp <- diversity(rffTable1, "simpson")
+  invsimp <- diversity(rffTable1, "inv")
+  Pheno<-data_list_final$groups
+  
+  # 
+  if(length(unique(Pheno))!=2){
+	print("length(unique(Pheno))!=2")
+	print("Alpha diversity Skipped")
+  }else{
+	 Disease_Group<-c("Control","Case")[Pheno+1]
+	 shannon_p<-wilcox.test(H~Pheno)
+	 simpson_p<-wilcox.test(simp~Pheno)
+	invsimp_p<-wilcox.test(invsimp~Pheno)
+	result_alpha<-rbind(shannon_p,simpson_p,invsimp_p)
+	 write.csv(result_alpha,"result_alpha.csv")
+	system("scp result_alpha.csv ng:~")
+	print("Alpha diversity Done")
+	  
+	  png(paste0("Alpha_div_",db,".png"),width=1024,height=1024)
+	  par(mfrow=c(1,3))
+
+	  boxplot(H~Disease_Group,main="Shannon")
+	  boxplot(simp~Disease_Group,main="Simpson")
+	  boxplot(invsimp~Disease_Group,main="Inverse Simpson")
+	  dev.off()
+	  par(mfrow=c(1,1))
+	  system(paste0("scp Alpha_div_",db,".png ng:~"))
+  }
+
+
+  # 
+  # 
+  
+  # 
+  # print("Beta diversity start")
+  # #library(GUniFrac)
+  # #rffTable1<-Rarefy(data_list_final$dataset)$otu.tab.rff
+  # # H <- diversity(rffTable1,"shannon")
+  # # simp <- diversity(rffTable1, "simpson")
+  # # invsimp <- diversity(rffTable1, "inv")
+  # table_rel<-data_list_final$dataset/data_list_final$totalcounts
+  # # Disease_Group<-Pheno
+
+  # covs<-cbind(data.frame(Disease_Group,stringsAsFactors=F),data_list_final$cov)
+  # print(colnames(covs))
+  # # colnames(covs)[1]<-"Disease status"
+  # # colnames(covs)[2]<-"Age"
+  # # colnames(covs)[3]<-"Gender"
+  # colnames(covs)[1]<-"Disease status"
+  # colnames(covs)[2]<-"Gender"
+  # colnames(covs)[3]<-"Age"
+  # print(colnames(covs))
+  # 
+  # permanova<-vector("list",dim(covs)[2])
+  #outDF<-data.frame(matrix(nrow=dim(covs)[2],ncol=3))
+  #for( i in 1:dim(covs)[2]){
+   # Target_Var<-covs[,i]
+   # outDF[i,1]<-colnames(covs)[i]
+   # ind_remain<-!is.na(Target_Var)
+   # permanova <- adonis(table_rel[ind_remain,] ~ Target_Var[ind_remain], permutations=10000, method = "bray")
+   # outDF[i,2]<-permanova$aov.tab$R2[1]
+   # outDF[i,3]<-permanova$aov.tab$Pr[1]
+   # cat(i)
+   # cat(" ")
+  #}
+
+  # Disease_Group<-c("Case","Control")[Pheno+1]
+  # 
+  # 
+
+  # 
+  # 
+  #library(ggplot2)
+  
+  #outDF$FDR<-p.adjust(outDF$X3,method="fdr")
+  #outDF$FDR_factor<-factor(as.numeric(outDF$FDR<0.05))
+  #library(ggplot2)
+  #names(outDF)[1]<-c("Group")
+  # ggplot(outDF, aes(x=Group, y=X2, fill=Group)) +
+  #   geom_bar(stat="identity",alpha=0.6) +
+  #   geom_point(stat="identity",stroke=0.001,shape=8,size=2.5,aes(alpha=c(0,1)[outDF$FDR_factor]),show.legend = F) +
+  #   ylab(expression("r"^2))+
+  #   xlab("Group")+
+  #   theme(
+  #     axis.text.y = element_text(face="bold"),
+  #     axis.text.x = element_text(face="bold"))+
+  #   coord_flip()+
+  #   theme_bw(base_size=8)+
+  #   #theme options
+  #   theme(
+  #     strip.background = element_rect(fill="white"),
+  #     axis.text.y = element_text(face="bold",size=10),
+  #     axis.text.x = element_text(face="bold", size=10),
+  #     axis.title.y = element_text(size = 12),
+  #     axis.title.x = element_text(size = 12),
+  #     #bold font for both axis text
+  #     axis.text=element_text(face="bold"),
+  #     #set thickness of axis ticks
+  #     axis.ticks=element_line(size=0.4),
+  #     #remove plot background
+  #     plot.background=element_blank(),
+  #     #remove plot border
+  #     panel.border=element_blank(),legend.position="none")
+  # ggsave(paste0("Beta_Diversity_",db,".png"),width = 6,height = 4)
+  # write.csv(outDF,paste0("result_beta_",db,".csv"))
+  # write.csv(covs,paste0("result_covs_",db,".csv"))
+  # system(paste0("scp result_*_",db,".csv ng:~"))
+  # 
+  # 
+  # system(paste0("scp Beta_Diversity_",db,".png ng:~"))
+  # 
+  print("Beta diversity Done")
+  
+  # cov1<-as.factor(c("Gender=1","Gender=2")[data_list_final$cov[,"Sex"]])
+  # # cov1<-as.factor(c("Gender=1","Gender=2")[data_list_final$cov[,"Gender"]])
+  # # cov2<-as.factor(c("Age<60","Age>=60")[(covs[,"AGE"]>=60)+1])
+  # NMDS_gogo(rffTable1,factor(Disease_Group),factor(cov1),paste0("lala_",db,".png"),width = 500, height = 500,circlesize=1.5,textSize=5)
+  # system(paste0("scp lala_",db,".png ng:~"))
+  # cov1<-as.factor(c("Gender=1","Gender=2")[data_list_final$cov[,"Sex"]])
+  # cov2<-as.factor(c("Age<60","Age>=60")[(covs[,"Age"]>=60)+1])
+  # NMDS_gogo(rffTable1,factor(Disease_Group),factor(cov1),paste0("lala_",db,".png"),width = 500, height = 500,circlesize=1.5,textSize=5)
+  # system(paste0("scp lala_",db,".png ng:~"))
+  # 
+  
+  # genusRff<-sapply(split(data.frame(t(data_list_final$dataset)),data_list_final$tax_upper),function(data){
+  #   apply(data,2,sum)
+  # })
+
+  cnt_sptd<-split(data.frame(t(data_list_final$dataset)),data_list_final$tax_upper)
+  otu_ids<-lapply(cnt_sptd,row.names)
+  Genus<-names(otu_ids)
+  
+  
+  k<-1
+  Run_OMiAT<-function(lala){
+    if("OMiAT" %in% methods){
+      source(paste0(source_dir,"/RFunctions/FunctionsTMAT/funcs_OMiAT.R"))
+      print("Read_Set_OMiAT_DONE")
+      pval_out_omiat<-list()
+      print("get_pvalues_OMiAT_START")
+      if(conti){
+        pval_out_omiat[[k]]<-out_OMiAT(data_list_final,nperm=nperm,ncore=ncore,model="gaussian")
+      }else{
+        pval_out_omiat[[k]]<-out_OMiAT(data_list_final,nperm=nperm,ncore=ncore,model="binomial")
+      }
+      print(pval_out_omiat)
+      saveRDS(pval_out_omiat,paste0("pvalues_omiat",db,".rds"))
+      domiat10000<-lapply(pval_out_omiat,function(data){
+        out<-cbind(data.frame(names(data),stringsAsFactors = F),p.adjust(data,method="fdr"))
+        rownames(out)<-NULL
+        colnames(out)<-c("Genus","FDR_Corrected_pvalue")
+        return(out)
+      })
+      
+      lapply(1:length(domiat10000),function(ind_Data){
+        write.csv(domiat10000[[ind_Data]],paste0("Pval_OMiAT_",db,".csv"),row.names = F)
+      })
+      print("get_pvalues_OMiAT_DONE")
+    }
+  }
+  out1<-try(Run_OMiAT(1))
+  
+  # nperm<-100
+  Run_oMirkat<-function(lala){
+    if("oMirkat" %in% methods){
+      library(MiRKAT)
+      pval_out_omiat<-list()
+      print("get_pvalues_oMirkat_START")
+      spetd_Rff<-split(data.frame(t(rffTable1)),data_list_final$tax_upper)
+      otu_ids<-lapply(spetd_Rff,row.names)
+      
+      output<-sapply(1:length(otu_ids),function(ind_gogo){
+        print(ind_gogo)
+        if(length(otu_ids[[ind_gogo]])>1){
+          targetdata<-t(spetd_Rff[[ind_gogo]])
+          pruned.tree_perphy_omiat<-drop.tip(data_list_final$tree,data_list_final$tree$tip.label[!data_list_final$tree$tip.label%in%otu_ids[[ind_gogo]]])  
+          out_mirkat_p <- try(out_MirKAT_result(targetdata,pruned.tree_perphy_omiat,data_list_final$groups,nperm=nperm,cov=data_list_final$cov))
+          #out_mirkat_p <- out_mirkat$omnibus_p
+        }else{
+          out_mirkat_p<-NA
+        }
+        return(out_mirkat_p)
+      })
+
+      Genus<-names(otu_ids)
+      output2<-cbind(data.frame(Genus,stringsAsFactors=F),output)
+      names(output2)[2]<-"P_value"
+      saveRDS(output2$P_value,paste0("pvalues_omirkat",db,".rds"))
+      output2$FDR_Corrected_pvalue<-p.adjust(output2$P_value,method="fdr")
+      
+      output_oM<-output2[,c("Genus","FDR_Corrected_pvalue")]
+      
+
+      
+
+      write.csv(output_oM,paste0("Pval_oMirkat_",db,".csv"),row.names = F)
+
+      print("get_pvalues_oMirkat_DONE")
+      return(output_oM)
+    }
+    
+  }
+  out2<-try(Run_oMirkat(1))
+  
+
+  
+  Run_aMiSPU<-function(lala){
+    if("aMiSPU" %in% methods){
+    
+
+      print("get_pvalues_aMiSPU_START")
+      cnt_sptd<-split(data.frame(t(data_list_final$dataset)),data_list_final$tax_upper)
+      otu_ids<-lapply(cnt_sptd,row.names)
+      
+      out_mi<-sapply(1:length(otu_ids),function(ind_gogo){
+        if(length(otu_ids[[ind_gogo]])>1){
+          target_table<-t(cnt_sptd[[ind_gogo]])
+          ind_zerro<-apply(target_table,1,sum)==0
+          phenos_fixed<-data_list_final$groups[!ind_zerro]
+          pruned.tree_perphy_omiat<-drop.tip(data_list_final$tree,data_list_final$tree$tip.label[!data_list_final$tree$tip.label%in%otu_ids[[ind_gogo]]])  
+          if(conti){
+            out_mispu <-MiSPU(phenos_fixed,target_table[!ind_zerro,], pruned.tree_perphy_omiat,model = "gaussian", pow = c(2:8, Inf), n.perm = nperm,cov=data_list_final$cov[!ind_zerro,])
+          }else{
+            out_mispu <-MiSPU(phenos_fixed,target_table[!ind_zerro,], pruned.tree_perphy_omiat,model = "binomial", pow = c(2:8, Inf), n.perm = nperm,cov=data_list_final$cov[!ind_zerro,])
+          }
+          out_mispu_p<-out_mispu$aMiSPU$pvalue
+        }else{
+          out_mispu_p<-NA
+        }
+      })
+      Genus<-names(otu_ids)
+      output2_mi<-cbind(data.frame(Genus,stringsAsFactors=F),out_mi)
+      names(output2_mi)[2]<-"P_value"
+      saveRDS(output2_mi$P_value,paste0("pvalues_mispu",db,".rds"))
+      output2_mi$FDR_Corrected_pvalue<-p.adjust(output2_mi$P_value,method="fdr")
+      output_mi<-output2_mi[,c("Genus","FDR_Corrected_pvalue")]
+      write.csv(output_mi,paste0("Pval_aMiSPU_",db,".csv"),row.names = F)
+      print("get_pvalues_aMiSPU_DONE")
+      return(output_mi)
+    }
+    
+  }
+  out3<-try(Run_aMiSPU(1))
+  
+  if("ANCOM" %in% methods){
+    print("get_results_ANCOM_START")
+    data_ANCOM<-readRDS(paste0("Set_ANCOM_",db,".rds"))
+    ancom_FDR<-0.05
+    ancom_output<-ancom_func(data_ANCOM,ancom_FDR,mcor=2)
+    
+    # while(class(try(dev.off()))!="try-error"){
+    #   
+    # }
+    
+    png("ancom_output_ecdf.png",width = 700, height = 700)
+    plot(ecdf(ancom_output$W),main="Ecdf of W")
+    dev.off()
+    write(ancom_output$detected,paste0("ANCOM_detected_otu_",db,".txt"))
+    
+    png(paste0("ancom_Sig_relative_Abundance.png"),width = 700, height = 700)
+    par(mfrow=c(length(ancom_output$detected)%/%ncol+1,ncol))
+    if(length(ancom_output$detected)==0|ancom_output$detected=="No significant OTUs detected"){
+      print("No OTU detected")
+    }else{
+      for (z in 1:length(ancom_output$detected)){
+        target_taxon<-ancom_output$detected[z]
+        rel_prop_tmp<-data_ANCOM$dataSet/data_list_final$totalcounts
+        print("relrel")
+        print(length(rel_prop_tmp))
+        print(dim(rel_prop_tmp))
+        ind_taxon<-which(names(data_ANCOM$dataSet) == target_taxon)
+        print(ind_taxon)
+        boxplot(rel_prop_tmp[,ind_taxon]~factor(data_ANCOM$y),main=paste0(target_taxon," - ","Relative Proportion"),ylab="Relative Proportion",xlab="Grouping Factor")
+        
+      }
+      dev.off()
+      
+      png(paste0("ancom_Sig_CPM_Abundance.png"),width = 700, height = 700)
+      par(mfrow=c(length(ancom_output$detected)%/%ncol+1,ncol))
+      for (z in 1:length(ancom_output$detected)){
+        target_taxon<-ancom_output$detected[z]
+        rel_prop_tmp<-data_ANCOM$dataSet/data_list_final$totalcounts
+        ind_taxon<-which(names(data_ANCOM$dataSet) == target_taxon)
+        boxplot(t(cpm(t(data_ANCOM$dataSet[,ind_taxon]),lib.size = data_list_final$totalcounts,log = T))~factor(data_ANCOM$y),main=paste0(target_taxon," - ","Log Counts Per Million"),ylab="Log Counts Per Million",xlab="Grouping Factor")
+        
+      } 
+      dev.off()
+      
+      FDR_Corrected_pvalue<-as.logical(Genus%in%ancom_output$detected)
+      out_ancom<-cbind(Genus,FDR_Corrected_pvalue)
+      write.csv(out_ancom,paste0("Pval_ancom_",db,".csv"),row.names = F)
+      par(mfrow=c(1,1))
+    }
+    
+   
+    print("get_results_ANCOM_DONE")
+  }
+  if("edgeR" %in% methods){
+    print("get_results_edgeR_START")
+    dataReady<-readRDS(paste0("Set_ANCOM_",db,".rds"))
+    edgeR_FDR<-0.05
+    dataReady$cov<-data_list_final$cov
+    edgeR_output<-getEdgeR_pvals(dataReady)
+    saveRDS(dataReady,paste0("pvalues_edgeR1",db,".rds"))
+    saveRDS(edgeR_output,paste0("pvalues_edgeR2",db,".rds"))
+    Genus<-row.names(edgeR_output)
+    FDR_Corrected_pvalue<-edgeR_output$FDR
+    oudata_edgeR<-cbind(data.frame(Genus),FDR_Corrected_pvalue,stringsAsFactors=F)
+    colnames(oudata_edgeR)<-c("Genus","FDR_Corrected_pvalue")
+    write.csv(oudata_edgeR,paste0("Pval_edgeR_",db,".csv"),row.names = F)
+    print("get_pvalues_edgeR_DONE")
+  }
+  target_ori<-data_list_final
+  if("wilcoxon" %in% methods){
+    print("get_pvalues_wilcoxon_START")
+    data_list_final_ready_wilcoxon<-readRDS(paste0("Set_Wilcoxon_",db,".rds"))
+    raw_pvalue<-apply(data_list_final_ready_wilcoxon$dataSet,2,function(data){
+      #if(!is.null(target_ori$covs)){
+      #  small<-min(data[data!=0])/2
+      #  res<-lm(log(data+small)~target_ori$covs)$residuals
+      #}else{
+        res<-data
+      #}
+      if(length(levels(factor(data_list_final_ready_wilcoxon$y)))==2){
+        re_wilcox<-wilcox.test(res ~ factor(data_list_final_ready_wilcoxon$y))
+      }else{
+        re_wilcox<-kruskal.test(res ~ factor(data_list_final_ready_wilcoxon$y))
+      }
+      re_wilcox$p.value
+    })
+    saveRDS(raw_pvalue,paste0("pvalues_wilcoxon",db,".rds"))
+    fdr_corrected_pvalue<-p.adjust(raw_pvalue,method="fdr")
+    Genus<-names(fdr_corrected_pvalue)
+    df<-cbind(data.frame(Genus),fdr_corrected_pvalue)
+    names(df)<-c("Genus","FDR_Corrected_pvalue")
+    write.csv(df,paste0("Pval_wilcoxon_",db,".csv"),row.names = F)
+    print("get_pvalues_wilcoxon_DONE")
+  }
+  # 
+  # if("wilcoxon" %in% methods){
+  #   print("get_pvalues_wilcoxon_otu_START")
+  #   
+  #   data_list_final_ready_wilcoxon_otu<-readRDS(paste0("Set_Wilcoxon_otu_",db,".rds"))
+  #   cnt_table<-plyr::count(data_list_final$tax_upper)
+  #   genus<-as.character(cnt_table[,1])
+  #   raw_p_values<- do.call("c",mclapply(1:length(genus),function(ind_genus){
+  #     if(ind_genus%%20==0){
+  #       cat(paste0(round(ind_genus/length(genus)*10000)/100,"% done"),"\n")
+  #     }
+  #     
+  #     
+  #     # browser()
+  #     ind_otu_go<-data_list_final$tax_upper==genus[ind_genus]
+  #     dataready<-as.matrix(data_list_final_ready_wilcoxon_otu$dataSet[,ind_otu_go])
+  #     pvalue_otu<-apply(dataready,2,function(data){
+  #       # browser()
+  #       if(!is.null(target_ori$covs)){
+  #         small<-min(data[data!=0])/2
+  #         res<-lm(log(data+small)~target_ori$covs)$residuals
+  #       }else{
+  #         res<-data
+  #       }
+  #       if(length(levels(factor(data_list_final_ready_wilcoxon_otu$y)))==2){
+  # 
+  #         re_wilcox<-wilcox.test(res ~ factor(data_list_final_ready_wilcoxon_otu$y))
+  #       }else{
+  #         re_wilcox<-kruskal.test(res ~ factor(data_list_final_ready_wilcoxon_otu$y))
+  #       }
+  #       re_wilcox$p.value
+  #     })
+  #     pvalue_forgenus<-min(p.adjust(pvalue_otu,method="fdr"))
+  #   },mc.cores=ncore))
+  #   
+  #   fdr_adjusted_wilcoxon_otu<-p.adjust(raw_p_values,method="fdr")
+  #   Genus<-genus
+  #   df<-cbind(data.frame(Genus),fdr_adjusted_wilcoxon_otu)
+  #   names(df)<-c("Genus","FDR_Corrected_pvalue")
+  #   write.csv(df,paste0("Pval_wilcoxon_otu_",db,".csv"),row.names = F)
+  #   print("get_pvalues_wilcoxon_otu_DONE")
+  # }
+  
+  if(sum(str_detect(methods,"TMAT*+"))){
+    print("get_pvalues_TMAT_START")
+    method<-methods[str_detect(methods,"TMAT*+")]
+    type<-as.numeric(str_sub(method,5,-1))
+    data_list_final_ready<-readRDS(paste0("Set_TMAT_",db,".rds"))
+    target_ori<-data_list_final
+    print(type)
+    for ( ind_type in type){
+        TMAT_pval_bygenus_bf<-mclapply(1:length(data_list_final_ready),function(ind_target){
+          target<-data_list_final_ready[[ind_target]]
+          pruned.tree_perphy_omiat<-drop.tip(target_ori$tree,target_ori$tree$tip.label[!target_ori$tree$tip.label%in%colnames(target$simData$X_P)])
+          indi_tAnal<-list()
+          indi_tAnal$subtree_tmp<-list()
+          indi_tAnal$subtree_tmp[[1]]<-pruned.tree_perphy_omiat
+          TMAT_func(target,indi_tAnal,type=ind_type,total.reads=target_ori$totalcounts,conti=conti,cov=target_ori$covs)
+        },mc.cores = ncore)
+        saveRDS(TMAT_pval_bygenus_bf,paste0("pvalues_TMAT",ind_type,"_",db,".rds"))
+      
+  
+      ########getdm
+      # TMAT_pval_bygenus_bf_dm<-mclapply(1:length(data_list_final_ready),function(ind_target){
+      #   target<-data_list_final_ready[[ind_target]]
+      #   pruned.tree_perphy_omiat<-drop.tip(target_ori$tree,target_ori$tree$tip.label[!target_ori$tree$tip.label%in%colnames(target$simData$X_P)])
+      #   indi_tAnal<-list()
+      #   indi_tAnal$subtree_tmp<-list()
+      #   indi_tAnal$subtree_tmp[[1]]<-pruned.tree_perphy_omiat
+      #   TMAT_func_dm(target,indi_tAnal,type=type,total.reads=target_ori$totalcounts,conti=conti,cov=target_ori$covs)
+      # },mc.cores = ncore)
+      # saveRDS(TMAT_pval_bygenus_bf_dm,paste0("dm_",db,".rds"))
+      if(ind_type%in%17:18){
+        TMAT_pval_bygenus_bf2<-lapply(TMAT_pval_bygenus_bf,function(data){
+          data$chi_pval #fisher
+        })
+      }else{
+        TMAT_pval_bygenus_bf2<-lapply(TMAT_pval_bygenus_bf,function(data){
+          data$pval #min_p
+        })
+      }
+      TMAT_Beta_bygenus_bf<-lapply(TMAT_pval_bygenus_bf,function(data){
+          data$betahat[which.min(data$min_index)]
+      })
+      TMAT_pval_bygenus<-do.call("rbind",TMAT_pval_bygenus_bf2)
+      TMAT_Beta_bygenus<-do.call("rbind",TMAT_Beta_bygenus_bf)
+	print("batabata")
+	print(TMAT_Beta_bygenus)
+      cnt_table<-plyr::count(target_ori$tax_upper)
+      genus<-as.character(cnt_table[,1])
+      TMAT_results<-list()
+      TMAT_results[[k]]<-cbind(data.frame(genus,stringsAsFactors=F),TMAT_pval_bygenus,TMAT_Beta_bygenus)
+      
+      
+      d1<-lapply(TMAT_results,function(data){
+        cbind(data.frame(data[,1],stringsAsFactors=F),p.adjust(data[,2],method="fdr"),data[,4],data[,2])
+      })
+      
+      lapply(1:length(d1),function(ind_Data){
+        outdata<-d1[[ind_Data]]
+        colnames(outdata)<-c("Genus","FDR_Corrected_pvalue","Beta","pvalue")
+        write.csv(outdata,paste0("Pval_TMAT_M",ind_type,"_",db,".csv"),row.names = F) # F
+      })
+      
+      d2<-lapply(TMAT_results,function(data){
+        cbind(data.frame(data[,1],stringsAsFactors=F),p.adjust(data[,3],method="fdr"),data[,4],data[,3])
+      })
+      
+      lapply(1:length(d2),function(ind_Data){
+        outdata<-d2[[ind_Data]]
+        colnames(outdata)<-c("Genus","FDR_Corrected_pvalue","Beta","pvalue")
+        write.csv(outdata,paste0("Pval_TMAT_F",ind_type,"_",db,".csv"),row.names = F) # Chi
+      })
+      
+      selected_genus_bf<-lapply(1:length(d2),function(ind_Data){
+        outdata<-d2[[ind_Data]]
+        colnames(outdata)<-c("Genus","FDR_Corrected_pvalue","Beta","pvalue")
+        outdata[,"Genus"][outdata[,"FDR_Corrected_pvalue"]<0.1]
+      })
+      selected_genus<-unique(do.call("c",selected_genus_bf))
+
+
+    }
+    print("get_pvalues_TMAT_DONE")
+  }
+  
+  # if(sum(str_detect(methods,"TMAT*+"))){
+  #   print("get_pvalues_TMATpermu_START")
+  #   method<-methods[str_detect(methods,"TMAT*+")]
+  #   type<-as.numeric(str_sub(method,5,-1))
+  #   data_list_final_ready<-readRDS(paste0("Set_TMAT_",db,".rds"))
+  #   target_ori<-data_list_final
+  #   TMAT_pval_bygenus_bf<-mclapply(data_list_final_ready,function(target){
+  #     pruned.tree_perphy_omiat<-drop.tip(target_ori$tree,target_ori$tree$tip.label[!target_ori$tree$tip.label%in%colnames(target$simData$X_P)])
+  #     indi_tAnal<-list()
+  #     indi_tAnal$subtree_tmp<-list()
+  #     indi_tAnal$subtree_tmp[[1]]<-pruned.tree_perphy_omiat
+  #     TMAT_func(dataSet=target,indi_tAnal=indi_tAnal,nperm=nperm,cov=target_ori$covs,type=type,total.reads=target_ori$totalcounts,permu = T)
+  #   },mc.cores = ncore)
+  #   TMAT_pval_bygenus_bf2<-lapply(TMAT_pval_bygenus_bf,function(data){
+  #     data$pval
+  #   })
+  #   TMAT_pval_bygenus<-do.call("rbind",TMAT_pval_bygenus_bf2)
+  #   cnt_table<-plyr::count(target_ori$tax_upper)
+  #   genus<-as.character(cnt_table[,1])
+  #   TMAT_results<-list()
+  #   TMAT_results[[k]]<-cbind(data.frame(genus,stringsAsFactors=F),TMAT_pval_bygenus)
+  #   
+  #   
+  #   d1<-lapply(TMAT_results,function(data){
+  #     cbind(data.frame(data[,1],stringsAsFactors=F),p.adjust(data[,2],method="fdr"))
+  #   })
+  #   
+  #   lapply(1:length(d1),function(ind_Data){
+  #     outdata<-d1[[ind_Data]]
+  #     colnames(outdata)<-c("Genus","FDR_Corrected_pvalue")
+  #     write.csv(outdata,paste0("Pval_TMATpermu_",db,".csv"),row.names = F)
+  #   })
+  #   print("get_pvalues_TMATpermu_DONE")
+  # }
+  
+    print("warnings")
+    print(warnings())
+}
+
+get_set<-function(lala){
+  Filter_Criteria<-T
+  library(stringr)
+  library(plyr)
+  library(ape)
+  library(edgeR)
+  methods<-str_split(mths,"_")[[1]]
+  tt_d<-c()
+  if(str_detect(tt_db,"ez")){
+    tt_d<-c(tt_d,"/otu_comp_new_ez.txt")
+  }
+  if(str_detect(tt_db,"silva")){
+    tt_d<-c(tt_d,"/otu_comp_new_silva.txt")
+  }
+  tt_db2<-str_split(tt_db,"_")[[1]]
+  db_list<-c("ez","silva")
+  ind_dbgogo<-sapply(tt_db2,function(data){which(data==db_list)})
+  data_list_nm<-paste0(data_d,c(tt_d))
+  # data_ez<-try(read.delim(data_list_nm[1],stringsAsFactors=F,check.names = F))
+  # data_silva<-try(read.delim(data_list_nm[2],stringsAsFactors=F,check.names = F))
+  data_list<-try(lapply(data_list_nm,read.delim,stringsAsFactors=F,check.names = F))
+  pheno<-read.csv(paste0(data_d,"/",phenofile),stringsAsFactors=F,check.names = F)
+  write.csv(pheno,paste0("pheno_input.csv"),row.names = F)
+  if(sum(str_detect(names(pheno),"ReadCount"))>0){
+    indRC<-which(str_detect(names(pheno),"ReadCount"))
+    TotalRDs<-pheno[,indRC]
+    pheno<-pheno[,-indRC]
+  }else{
+    TotalRDs<-NULL
+  }
+  
+  getDataList<-function(data){
+    # browser()
+    data_db<-list()
+    data_db$taxonomy<-data[,dim(data)[2]]
+    # data_db$taxonomy[is.na(data_db$taxonomy)]<-"Unassigned"
+    data_db$otu_id<-data[,1]
+    data_db$sample_id_bf<-colnames(data)[-c(1,dim(data)[2])]
+    data_db$dataset_bf<-t(data[,-c(1,dim(data)[2])])
+    
+    if(is.null(TotalRDs)){
+      data_db$ttr<-apply(data_db$dataset,1,sum)
+    }else{
+      data_db$ttr<-TotalRDs
+    }
+    print("ttr")
+    print(data_db$ttr)
+    ind_remain<-data_db$ttr>5000
+    data_db$dataset<-data_db$dataset_bf[ind_remain,]
+    colnames(data_db$dataset)<-data_db$otu_id
+    data_db$sample_id<-data_db$sample_id_bf[ind_remain]
+    rownames(data_db$dataset)<-data_db$sample_id
+    # data_db$ind_remain<-ind_remain
+    data_db$ttr<-data_db$ttr[ind_remain]
+    return(data_db)
+  }
+  print("dimdata")
+  print(dim(data_list[[1]]))
+  print(data_list)
+  data_db<-lapply(data_list,getDataList)
+  # data_db[[1]]$dataset[1:4,1:4]
+  # data_db[[1]]$otu_id
+  # data_db[[1]]$sample_id
+  tree_path<-c(file_tree_ez,file_tree_silva)
+  for(k in 1:length(ind_dbgogo)){
+    data_db[[k]]$tree<-try(read.tree(file = tree_path[[ind_dbgogo[k]]], text = NULL, tree.names = NULL, skip = 0,comment.char = "#", keep.multi = FALSE))
+  }
+
+  
+  
+  
+  data_list<-vector("list",length(tt_db2))
+  analysis<-tt_db2
+  
+  list_pheno<-list(pheno)
+  
+  data_withpheno<-function(ind_pheno,data){
+    # browser()
+    
+    pheno<-list_pheno[[ind_pheno]]
+    colto<-dim(pheno)[2]
+    
+    standard<-intersect(data$sample_id,pheno[,1])
+    ind_to_pheno<-match(standard,pheno[,1])
+    ind_to_data<-match(standard,data$sample_id)
+    data$sample_id<-data$sample_id[ind_to_data]
+    data$dataset<-data$dataset[ind_to_data,]
+
+    Groups<-pheno[ind_to_pheno,2]
+    if(colto!=2){
+      Covs<-pheno[ind_to_pheno,3:colto]
+      ind_go_samples<-complete.cases(Covs) & !is.na(Groups)
+    }else{
+      Covs<-NULL
+      ind_go_samples<-!is.na(Groups)
+    }
+    
+    
+    
+    data$sample_id<-data$sample_id[ind_go_samples]
+    data$dataset<-data$dataset[ind_go_samples,]
+    data$groups<-Groups[ind_go_samples]
+    if(!is.null(Covs)){
+      data$covs<-Covs[ind_go_samples,]
+      cov<-data$covs
+      ind_chr<-which(do.call("c",lapply(data$covs,is.character)))
+      tmpD<-data$covs[ind_chr]
+      cov[ind_chr]<-lapply(lapply(tmpD,as.factor),as.numeric)
+      data$covs<-as.matrix(cov)
+    }else{
+      data$covs<-Covs
+    }
+    data$totalcounts<-data$ttr[ind_to_data][ind_go_samples]
+    return(data)
+  }
+  
+  
+  data_list<-c()
+
+  lapply(data_list,function(data){
+    dim(data$dataset)
+  })
+  for ( q in 1:length(data_db)){
+    data_list<-c(data_list,lapply(1:length(list_pheno),data_withpheno,data_db[[q]]))
+  }
+  
+  for ( q in 1:length(data_db)){
+    saveRDS(data_list[[q]],paste0("countTable_",db_list[ind_dbgogo[q]],".rds"))
+  }
+  
+  data_list_final<-lapply(data_list,function(data){
+    # browser()
+    propor<-data$dataset/data$totalcounts
+    # ind_otu_remain<-apply(propor,2,mean)>10^(-3)
+    
+    # if(Filter_Criteria){
+    #   ind_otu_remain1<-!apply(data$dataset, 2, function(x) sum(x==0))/nrow(data$dataset) > 0.5
+    #   ind_otu_remain2<-!apply(data$dataset, 2, sum)/sum(apply(data$dataset, 2, sum)) < 0.0005
+    #   ind_otu_remain<-ind_otu_remain1 & ind_otu_remain2  
+    #   print("The number of OTUs excluded: ")
+    #   print(sum(!ind_otu_remain))
+    # }else{
+    #   ind_otu_remain<-apply(propor,2,mean)>10^(-3)
+    # }
+    
+    if(is.null(TotalRDs)){
+      ind_otu_remain<-apply(propor,2,mean)>10^(-3)
+    }else{
+      ind_otu_remain<-1:dim(propor)[2]
+    }
+    
+    
+    data$propor<-propor[,ind_otu_remain]
+    data$dataset<-data$dataset[,ind_otu_remain]
+    data$otu_id<-data$otu_id[ind_otu_remain]
+    data$taxonomy<-data$taxonomy[ind_otu_remain]
+    if(class(data$tree)=="phylo"){
+      data$tree<-drop.tip(data$tree,data$tree$tip.label[!data$tree$tip.label%in%data$otu_id])
+      ind_otu<-match(data$tree$tip.label,data$otu_id)
+      data$propor<-data$propor[,ind_otu]
+      data$dataset<-data$dataset[,ind_otu]
+      data$otu_id<-data$otu_id[ind_otu]
+      data$taxonomy<-data$taxonomy[ind_otu]
+    }else{
+      
+    }
+    return(data)
+  })
+  library(edgeR)
+  for ( q in 1:length(data_db)){
+    lala<-data_list_final[[q]]$propor
+    alal2<-t(cpm(t(data_list_final[[q]]$dataset),lib.size = data_list_final[[q]]$totalcounts,log = T))
+    saveRDS(lala,paste0("proporDat_",db_list[ind_dbgogo[q]],".rds"))
+    saveRDS(alal2,paste0("logcpmDat_",db_list[ind_dbgogo[q]],".rds"))
+  }
+  lapply(data_list_final,function(data){
+    dim(data$dataset)
+  })
+  
+  taxo_indiv<-function(taxonomy,rank,db){
+    tax_rank<-paste0("D_",rank)
+    if(db=="ez"){
+      upper_level_list<-sapply(str_split(taxonomy,";"),function(data){data[as.numeric(rank)+1]})
+    }else{
+      taxonomy<-paste0(taxonomy,";")
+      patten_find<-paste0("(?<=",tax_rank,"__).+?(?=;)")
+      upper_level_list<-str_extract(taxonomy,patten_find)
+    }
+    upper_level_list[is.na(upper_level_list)]<-"Unassigned"
+    return(upper_level_list)
+  }
+  
+
+  for( i in 1:length(data_list_final)){
+    data_list_final[[i]]$tax_upper<-taxo_indiv(data_list_final[[i]]$taxonomy,input_rank,db_list[ind_dbgogo[i]])
+    data_list_final[[i]]$lower_upper<-taxo_indiv(data_list_final[[i]]$taxonomy,6,db_list[ind_dbgogo[i]])
+  }
+  
+  cat("Set_Base_DONE")
+  lapply(1:length(data_list_final),function(ind_data){
+    saveRDS(data_list_final[[ind_data]],paste0("Set_Base_",db_list[ind_dbgogo[ind_data]],".rds"))
+  })
+  
+  table_genus_out<-lapply(data_list_final,function(dataSet_bf){
+    cnt_table<-plyr::count(dataSet_bf$tax_upper)
+    genus<-as.character(cnt_table[,1])
+    genus_tmp<-genus[1]
+    table_genus_bf<-sapply(genus,function(genus_tmp){
+      ind_sel_otu<-dataSet_bf$tax_upper==genus_tmp
+      mm<-matrix(dataSet_bf$dataset[,ind_sel_otu],ncol=sum(ind_sel_otu))
+      apply(mm,1,sum)
+    })
+    table_genus<-data.frame(table_genus_bf)
+    row.names(table_genus)<-row.names(dataSet_bf$dataset)
+    return(table_genus)
+  })
+  
+  
+  lapply(1:length(data_list_final),function(ind_data){
+    output<-list(dataSet=table_genus_out[[ind_data]],y=data_list_final[[ind_data]]$groups)
+    saveRDS(output,paste0("Set_ANCOM_",db_list[ind_dbgogo[ind_data]],".rds"))
+  })
+  
+  table_genus_cpm<-lapply(1:length(table_genus_out),function(ind_data){
+    df<-data.frame(t(cpm(t(table_genus_out[[ind_data]]),lib.size = data_list_final[[ind_data]]$totalcounts,log = T)),stringsAsFactors=F,check.names = F)
+    df2<-cbind(df,data_list_final[[ind_data]]$groups)
+    saveRDS(df,paste0("Set_CPM_",db_list[ind_dbgogo[ind_data]],".rds"))
+    row.names(df2)<-data_list_final[[ind_data]]$sample_id
+    write.csv(df2,paste0("CPM_Table_",db_list[ind_dbgogo[ind_data]],".csv"))
+  })
+  
+  table_genus_prop<-lapply(1:length(table_genus_out),function(ind_data){
+    data.frame(table_genus_out[[ind_data]]/data_list_final[[ind_data]]$totalcounts,stringsAsFactors=F,check.names = F)
+  })
+  
+  
+  
+  table_otu_prop<-lapply(1:length(table_genus_out),function(ind_data){
+    data.frame(data_list_final[[ind_data]]$dataset/data_list_final[[ind_data]]$totalcounts,stringsAsFactors=F,check.names = F)
+  })
+  
+  
+  Set_Wilcoxon<-lapply(1:length(data_list_final),function(ind_data){
+    output<-list(dataSet=table_genus_prop[[ind_data]],y=data_list_final[[ind_data]]$groups)
+    output2<-cbind(table_genus_prop[[ind_data]],data_list_final[[ind_data]]$groups)
+    saveRDS(output,paste0("Set_Wilcoxon_",db_list[ind_dbgogo[ind_data]],".rds"))
+    row.names(output2)<-data_list_final[[ind_data]]$sample_id
+    write.csv(output2,paste0("Rel_Propor_Table_",db_list[ind_dbgogo[ind_data]],".csv"))
+    return(output2)
+  })
+  lapply(1:length(data_list_final),function(ind_data){
+    output<-list(dataSet=table_otu_prop[[ind_data]],y=data_list_final[[ind_data]]$groups)
+    saveRDS(output,paste0("Set_Wilcoxon_otu_",db_list[ind_dbgogo[ind_data]],".rds"))
+  })
+  
+  cat("Set_Wilcoxon_DONE")
+
+  if(sum(str_detect(methods,"TMAT*+"))){
+    data_list_final_ready<-lapply(data_list_final,function(target){
+      cnt_table<-plyr::count(target$tax_upper)
+      genus<-as.character(cnt_table[,1])
+      lapply(1:length(genus),function(ind_genus){
+        ind_otu_go<-which(target$tax_upper==genus[ind_genus])
+        # dataSet_sel<-target$dataset
+        # dataSet_selC <- totalreads - apply(dataSet_sel,1,sum)
+        # rfftable_bf<-cbind(dataSet_sel,dataSet_selC)
+        # otu.tab.rff <- Rarefy(rfftable_bf)$otu.tab.rff[,-dim(rfftable_bf)[2]]
+        dSet<-matrix(target$dataset[,ind_otu_go],ncol=length(ind_otu_go))
+        colnames(dSet)<-colnames(target$dataset)[ind_otu_go]
+        simulSet_by_methods_fixed(y=target$groups,dataSet=dSet,ttr=target$totalcounts,type=15,method="TMAT")  
+      })
+    })
+    
+    cat("Set_TMAT_DONE")
+    lapply(1:length(data_list_final),function(ind_data){
+      output<-data_list_final_ready[[ind_data]]
+      saveRDS(output,paste0("Set_TMAT_",db_list[ind_dbgogo[ind_data]],".rds"))
+    })
+  }
+      print("warnings")
+    print(warnings())
+  
+}
+
