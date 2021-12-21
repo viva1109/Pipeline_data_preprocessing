@@ -19,13 +19,3 @@ Sungho Won, Ph.D &lt;won1@snu.ac.kr&gt;<br />
 <br />
 Written and maintained by Kangjin Kim.
 </p>
-
-
-													<center><h1>Online supplementary</h1></center>
-
-
-													<center><h1>Online supplementary</h1></center>
-
-
-													<center><h1>Online supplementary</h1></center>
-

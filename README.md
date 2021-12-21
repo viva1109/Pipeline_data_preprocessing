@@ -1,4 +1,4 @@
-# All-inclusive Microbiome Association Analysis
+# Preprocessing of Metagenome Abundance Table
 
 <div style="text-align:right">
 - Last updated: 2021-12-21
@@ -6,7 +6,7 @@
 
 <b>About the work</b>
 <p>
-Preprocessing steps such as OTU clustering, choice of OTU filtering threshold, rarefying can be a source of heterogeneity. This package envelope a pipeline building microbial count tables based on different databases and clustering method and the methods for metagenome-wide association analysis. It provides the convenient use of various methods for microbiome association analysis under a unified preprocessing and comparison the results based on different databases or clustering method.
+Preprocessing of metagenome analysis.
 </p>
 
 User Reference Guide in English will be updated.
