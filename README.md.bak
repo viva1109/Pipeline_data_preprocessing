@@ -9,13 +9,7 @@
 Preprocessing steps such as OTU clustering, choice of OTU filtering threshold, rarefying can be a source of heterogeneity. This package envelope a pipeline building microbial count tables based on different databases and clustering method and the methods for metagenome-wide association analysis. It provides the convenient use of various methods for microbiome association analysis under a unified preprocessing and comparison the results based on different databases or clustering method.
 </p>
 
-
-<b>Download</b>
-<table>
-<tr><td><a href="http://viva1109.iptime.org/paper/Downloads/AMAA_Package.zip" download>AMAA install file</a></td><td>&emsp;AMAA environment install</td></tr>
-<tr><td><a href="http://viva1109.iptime.org/paper/TMAT/AMAA_guide.html">User Reference Guide</a></td><td>&emsp;A description for AMAA and example code</td></tr>
-</table>
-<br />
+User Reference Guide in English is on work.
 
 <b>Contributors</b>
 <p>
